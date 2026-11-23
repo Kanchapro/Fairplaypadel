@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fairplay Padel — Sáenz Peña, Chaco</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+          colors: {
+            fairplay: {
+              950: '#060911',
+              900: '#0c1220',
+              800: '#141d33',
+              700: '#1f2c4d'
+            },
+            limefp: '#a3e635'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #060911; color: #f8fafc; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes pulse-live {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .45; transform: scale(1.25); }
+    }
+    .dot-live { animation: pulse-live 1.6s infinite; }
+    body:not(.is-admin) .admin-only { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-limefp selection:text-fairplay-950">
+
+  <!-- BARRA SUPERIOR ADMIN -->
+  <div class="admin-only bg-amber-400 text-fairplay-950 px-4 py-2 text-xs font-extrabold flex flex-wrap items-center justify-between gap-2 sticky top-0 z-50 shadow-lg">
+    <div class="flex items-center gap-2">
+      <span class="px-2 py-0.5 bg-fairplay-950 text-limefp rounded uppercase tracking-wider text-[10px]">Modo Organización</span>
+      <span id="sync-status-label">Sincronizado (Local)</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="openFirebaseModal()" class="px-2.5 py-1 bg-fairplay-950/15 hover:bg-fairplay-950/25 rounded transition">Firebase</button>
+      <button onclick="exportJSON()" class="px-2.5 py-1 bg-fairplay-950/15 hover:bg-fairplay-950/25 rounded transition">Exportar JSON</button>
+      <button onclick="resetAllToZero()" class="px-2.5 py-1 bg-rose-600 text-white rounded hover:bg-rose-700 transition">Vaciar Todo</button>
+      <button onclick="logoutAdmin()" class="px-3 py-1 bg-fairplay-950 text-white rounded hover:bg-fairplay-800 transition">Salir a Vista Pública</button>
+    </div>
+  </div>
+
+  <!-- HEADER PRINCIPAL -->
+  <header class="bg-fairplay-900/95 backdrop-blur-md border-b border-white/10 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <!-- LOGO CIRCULAR FAIRPLAY PADEL (DOBLE CLIC OCULTO PARA ADMIN) -->
+      <div class="flex items-center justify-between gap-3">
+        <div id="app-logo" ondblclick="triggerAdminAccess()" title="Fairplay Padel — Sáenz Peña, Chaco" class="flex items-center gap-3 cursor-pointer select-none group">
+          <div id="logo-emblem-box" class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/80 shadow-lg shadow-limefp/15 group-active:scale-95 transition shrink-0 bg-black flex items-center justify-center">
+            <svg id="default-logo-svg" viewBox="0 0 200 200" class="w-full h-full">
+              <defs>
+                <path id="topArc" d="M 24,102 A 76,76 0 1,1 176,102" />
+                <path id="bottomArc" d="M 178,104 A 78,78 0 0,1 22,104" />
+              </defs>
+              <circle cx="100" cy="100" r="98" fill="#050505" />
+              <circle cx="100" cy="100" r="78" fill="#ffffff" />
+              <circle cx="100" cy="100" r="74" fill="#070707" />
+              <g fill="#a3e635">
+                <path d="M52,65 L128,46 L124,54 L48,74 Z" />
+                <path d="M40,86 L146,58 L140,69 L36,98 Z" />
+                <path d="M35,108 L156,74 L150,86 L33,120 Z" />
+                <path d="M42,128 L160,94 L154,105 L40,139 Z" />
+                <path d="M56,144 L148,118 L142,128 L54,153 Z" />
+              </g>
+              <g fill="#050505">
+                <circle cx="110" cy="64" r="9" />
+                <path d="M104,74 L120,76 L116,106 L96,104 Z" />
+                <path d="M116,78 L131,66 L135,71 L120,85 Z" />
+                <ellipse cx="139" cy="63" rx="8" ry="11" transform="rotate(-25 139 63)" />
+                <circle cx="147" cy="96" r="5" />
+                <path d="M98,104 L76,124 L62,124 L62,130 L82,130 L105,110 Z" />
+                <path d="M112,105 L118,132 L134,144 L129,149 L111,136 L104,108 Z" />
+              </g>
+              <text fill="#ffffff" font-size="21" font-weight="900" letter-spacing="2">
+                <textPath href="#topArc" startOffset="50%" text-anchor="middle">FAIRPLAY PADEL</textPath>
+              </text>
+              <text fill="#ffffff" font-size="14.5" font-weight="900" letter-spacing="1.2">
+                <textPath href="#bottomArc" startOffset="50%" text-anchor="middle">SAENZ PEÑA - CHACO</textPath>
+              </text>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="font-extrabold text-base md:text-lg tracking-tight text-white leading-none">FAIRPLAY PADEL</h1>
+              <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-limefp/15 text-limefp border border-limefp/30">Sáenz Peña • Chaco</span>
+            </div>
+            <p id="header-tournament-meta" class="text-xs text-slate-400 mt-1">Sin torneos cargados</p>
+          </div>
+        </div>
+
+        <!-- SELECTOR DE TORNEO -->
+        <div class="hidden sm:flex items-center gap-2">
+          <select id="tournament-selector" onchange="switchTournament(this.value)" class="bg-fairplay-800 border border-white/15 rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-limefp outline-none"></select>
+        </div>
+      </div>
+
+      <!-- SELECTOR MÓVIL + PÍLDORAS DE CATEGORÍAS -->
+      <div class="flex flex-col sm:flex-row lg:items-center gap-2 overflow-hidden">
+        <select id="tournament-selector-mobile" onchange="switchTournament(this.value)" class="sm:hidden bg-fairplay-800 border border-white/15 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"></select>
+        <div id="category-pills" class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1"></div>
+      </div>
+    </div>
+
+    <!-- PESTAÑAS DE NAVEGACIÓN -->
+    <div class="max-w-7xl mx-auto px-4 border-t border-white/5 flex items-center justify-between overflow-x-auto no-scrollbar">
+      <nav class="flex gap-1 py-2" id="visitor-tabs">
+        <button onclick="setVisitorTab('partidos')" data-vtab="partidos" class="vtab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-white/10 text-white">Partidos y Canchas</button>
+        <button onclick="setVisitorTab('posiciones')" data-vtab="posiciones" class="vtab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white">Zonas y Posiciones</button>
+        <button onclick="setVisitorTab('llaves')" data-vtab="llaves" class="vtab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white">Playoffs / Llaves</button>
+        <button onclick="setVisitorTab('estadisticas')" data-vtab="estadisticas" class="vtab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white">Estadísticas</button>
+      </nav>
+
+      <nav class="admin-only flex gap-1 py-2 border-l border-white/10 pl-3 ml-3" id="admin-tabs">
+        <button onclick="setAdminTab('torneos')" data-atab="torneos" class="atab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-white/5">Torneos y Sedes</button>
+        <button onclick="setAdminTab('categorias')" data-atab="categorias" class="atab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">Categorías y Parejas</button>
+        <button onclick="setAdminTab('resultados')" data-atab="resultados" class="atab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-white/5">Partidos y Resultados</button>
+        <button onclick="setAdminTab('sponsors')" data-atab="sponsors" class="atab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-white/5">Publicidades (2)</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+    <section id="admin-workspace" class="admin-only mb-8 bg-fairplay-900 border border-amber-400/30 rounded-2xl p-5 shadow-xl"></section>
+
+    <section id="view-partidos" class="visitor-section space-y-6">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-limefp dot-live"></span> En Juego Ahora
+          </h2>
+          <span id="live-count-badge" class="text-xs text-slate-400"></span>
+        </div>
+        <div id="live-matches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+        <div>
+          <h3 class="text-sm font-bold uppercase tracking-wider text-limefp mb-3">Próximos Turnos</h3>
+          <div id="upcoming-matches-list" class="space-y-3"></div>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">Resultados Recientes</h3>
+          <div id="finished-matches-list" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-posiciones" class="visitor-section hidden space-y-6">
+      <div id="standings-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+    </section>
+
+    <section id="view-llaves" class="visitor-section hidden">
+      <div id="brackets-container" class="overflow-x-auto pb-4"></div>
+    </section>
+
+    <section id="view-estadisticas" class="visitor-section hidden space-y-6">
+      <div id="stats-kpi-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+      <div id="stats-ranking-container" class="bg-fairplay-900 border border-white/10 rounded-2xl p-5"></div>
+    </section>
+  </main>
+
+  <!-- FOOTER CON 2 PUBLICIDADES -->
+  <footer id="sponsors-footer" class="hidden bg-fairplay-900 border-t border-white/10 mt-auto py-5">
+    <div class="max-w-7xl mx-auto px-4">
+      <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2.5 text-center">Sponsors Fairplay Padel • Sáenz Peña, Chaco</p>
+      <div id="sponsors-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </div>
+  </footer>
+
+  <!-- MODAL INGRESO ADMIN CON CÓDIGO 10428409 -->
+  <div id="admin-login-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-fairplay-900 border border-white/15 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-extrabold text-white">Acceso Administrador</h3>
+        <button onclick="closeLoginModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <p class="text-xs text-slate-400 mb-4">Ingresá el código de acceso de organización para habilitar el panel.</p>
+      <form onsubmit="handleCodeLogin(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Código de Acceso</label>
+          <input type="password" id="admin-code-input" inputmode="numeric" autocomplete="off" required placeholder="Ingresá el código" class="w-full bg-fairplay-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white tracking-widest focus:border-limefp outline-none" />
+        </div>
+        <p id="login-error" class="text-xs text-rose-400 hidden"></p>
+        <button type="submit" class="w-full py-2.5 bg-limefp text-fairplay-950 font-extrabold rounded-xl text-sm hover:brightness-110 transition">Desbloquear Panel</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL FIREBASE -->
+  <div id="firebase-config-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-fairplay-900 border border-white/15 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-extrabold text-white">Configuración Firebase Activa</h3>
+        <button onclick="closeFirebaseModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <p class="text-xs text-slate-400 mb-3">Podés revisar o actualizar el objeto <code class="text-limefp">firebaseConfig</code> para sincronización en tiempo real.</p>
+      <textarea id="fb-config-input" rows="8" class="w-full bg-fairplay-950 border border-white/10 rounded-xl p-3 text-xs font-mono text-limefp focus:border-limefp outline-none"></textarea>
+      <div class="flex justify-end gap-2 mt-4">
+        <button onclick="closeFirebaseModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Cancelar</button>
+        <button onclick="saveFirebaseConfig()" class="px-4 py-2 rounded-xl text-xs font-bold bg-limefp text-fairplay-950">Guardar y Conectar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
+
+  <script>
+    const ADMIN_ACCESS_CODE = "10428409";
+
+    const DEFAULT_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyA0zJDtuTQqnWjdLvG8i4QaVi7BQg4LegY",
+      authDomain: "fair-play-padel.firebaseapp.com",
+      projectId: "fair-play-padel",
+      storageBucket: "fair-play-padel.firebasestorage.app",
+      messagingSenderId: "402530751210",
+      appId: "1:402530751210:web:49b938eaca9c8b3cc93d93",
+      measurementId: "G-L0X76JQYMB"
+    };
+
+    const FORMATOS_LABEL = {
+      zonas: "Tradicional (Zonas + Playoffs)",
+      eliminacion: "Eliminación Directa",
+      americano_parejas: "Americano por Parejas",
+      americano_ind: "Americano Individual",
+      mexicano: "Mexicano Dinámico",
+      sube_baja: "Sube y Baja (Rey de Cancha)"
+    };
+
+    const EMPTY_STATE = {
+      activeTournamentId: null,
+      logoCustomUrl: "",
+      torneos: [],
+      sponsors: {
+        banner1: { activo: false, titulo: "", imagen: "", link: "" },
+        banner2: { activo: false, titulo: "", imagen: "", link: "" }
+      }
+    };
+
+    let appState = JSON.parse(localStorage.getItem('fairplay_state')) || structuredClone(EMPTY_STATE);
+    let selectedCategory = 'ALL';
+    let currentVisitorTab = 'partidos';
+    let currentAdminTab = 'torneos';
+    let db = null, useFirebase = false;
+
+    function getActiveFirebaseConfig() {
+      const savedFb = localStorage.getItem('fairplay_fb_config');
+      if (savedFb) {
+        try { return JSON.parse(savedFb); } catch { return DEFAULT_FIREBASE_CONFIG; }
+      }
+      return DEFAULT_FIREBASE_CONFIG;
+    }
+
+    function getActiveTournament() {
+      if (!appState.torneos.length) return null;
+      return appState.torneos.find(t => t.id === appState.activeTournamentId) || appState.torneos[0];
+    }
+
+    function normalizeWhatsAppPhone(raw) {
+      let digits = String(raw || '').replace(/\D/g, '');
+      if (!digits) return '';
+      if (digits.startsWith('0')) digits = digits.slice(1);
+      if (digits.startsWith('549')) return digits;
+      if (digits.startsWith('54')) return '549' + digits.slice(2);
+      return '549' + digits;
+    }
+
+    function sendMatchWhatsApp(matchId, pairId) {
+      const t = getActiveTournament();
+      if (!t) return;
+      const m = t.partidos.find(x => x.id === matchId);
+      const p = t.parejas.find(x => x.id === pairId);
+      if (!m || !p) return;
+
+      const rivalId = m.pA === pairId ? m.pB : m.pA;
+      const rivalName = getTeamName(t, rivalId);
+      const catName = getCatName(t, m.catId);
+
+      const text = encodeURIComponent(
+        `¡Hola ${p.nombre}! Desde *Fairplay Padel* les avisamos su horario:\n` +
+        `🏆 Torneo: ${t.nombre}\n` +
+        `🎾 Categoría: ${catName} (${m.fase})\n` +
+        `🆚 Rival: ${rivalName}\n` +
+        `🕒 Horario: ${m.hora} hs\n` +
+        `🏟️ Cancha: ${m.cancha}`
+      );
+
+      const phone = normalizeWhatsAppPhone(p.tel);
+      const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+      window.open(url, '_blank', 'noopener');
+    }
+
+    function initApp() {
+      const cfg = getActiveFirebaseConfig();
+      if (cfg && cfg.apiKey && cfg.projectId) {
+        try {
+          const app = !firebase.apps.length ? firebase.initializeApp(cfg) : firebase.app();
+          if (typeof firebase.analytics === 'function') {
+            firebase.analytics.isSupported().then(supported => {
+              if (supported) firebase.analytics(app);
+            }).catch(() => {});
+          }
+          db = firebase.firestore();
+          useFirebase = true;
+          document.getElementById('sync-status-label').textContent = `Firebase Conectado (${cfg.projectId})`;
+
+          db.collection('fairplay_padel').doc('plataforma').onSnapshot((doc) => {
+            if (doc.exists) {
+              appState = doc.data();
+              renderAll();
+            } else if (document.body.classList.contains('is-admin')) {
+              persistState();
+            }
+          }, (err) => {
+            console.warn("Firestore listener:", err.message);
+            document.getElementById('sync-status-label').textContent = "Local (Revisar reglas Firestore)";
+          });
+        } catch (e) {
+          console.error("Error inicializando Firebase:", e);
+          document.getElementById('sync-status-label').textContent = "Local (Error Firebase)";
+        }
+      }
+
+      if (sessionStorage.getItem('fairplay_admin_unlocked') === '1') {
+        document.body.classList.add('is-admin');
+      }
+      if (!getActiveTournament() && document.body.classList.contains('is-admin')) {
+        currentAdminTab = 'torneos';
+      }
+      renderAll();
+    }
+
+    async function persistState() {
+      localStorage.setItem('fairplay_state', JSON.stringify(appState));
+      if (useFirebase && db && document.body.classList.contains('is-admin')) {
+        try {
+          await db.collection('fairplay_padel').doc('plataforma').set(appState);
+        } catch (e) {
+          alert("Error guardando en Firebase: " + e.message);
+        }
+      }
+      renderAll();
+    }
+
+    function resetAllToZero() {
+      if (!confirm("¿Borrar todos los torneos, categorías, parejas, partidos y publicidades para empezar de cero?")) return;
+      appState = structuredClone(EMPTY_STATE);
+      selectedCategory = 'ALL';
+      currentAdminTab = 'torneos';
+      persistState();
+    }
+
+    function triggerAdminAccess() {
+      if (document.body.classList.contains('is-admin')) return;
+      document.getElementById('admin-code-input').value = '';
+      document.getElementById('login-error').classList.add('hidden');
+      const m = document.getElementById('admin-login-modal');
+      m.classList.remove('hidden'); m.classList.add('flex');
+      setTimeout(() => document.getElementById('admin-code-input').focus(), 50);
+    }
+
+    function closeLoginModal() {
+      const m = document.getElementById('admin-login-modal');
+      m.classList.add('hidden'); m.classList.remove('flex');
+    }
+
+    function handleCodeLogin(e) {
+      e.preventDefault();
+      const code = document.getElementById('admin-code-input').value.trim();
+      const errEl = document.getElementById('login-error');
+      if (code === ADMIN_ACCESS_CODE) {
+        sessionStorage.setItem('fairplay_admin_unlocked', '1');
+        document.body.classList.add('is-admin');
+        currentAdminTab = getActiveTournament() ? 'categorias' : 'torneos';
+        closeLoginModal();
+        renderAll();
+      } else {
+        errEl.textContent = "Código incorrecto.";
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem('fairplay_admin_unlocked');
+      document.body.classList.remove('is-admin');
+    }
+
+    function openFirebaseModal() {
+      document.getElementById('fb-config-input').value = JSON.stringify(getActiveFirebaseConfig(), null, 2);
+      const m = document.getElementById('firebase-config-modal');
+      m.classList.remove('hidden'); m.classList.add('flex');
+    }
+
+    function closeFirebaseModal() {
+      const m = document.getElementById('firebase-config-modal');
+      m.classList.add('hidden'); m.classList.remove('flex');
+    }
+
+    function saveFirebaseConfig() {
+      try {
+        const parsed = JSON.parse(document.getElementById('fb-config-input').value.trim());
+        localStorage.setItem('fairplay_fb_config', JSON.stringify(parsed));
+        closeFirebaseModal();
+        location.reload();
+      } catch { alert("JSON inválido."); }
+    }
+
+    function switchTournament(id) {
+      appState.activeTournamentId = id;
+      selectedCategory = 'ALL';
+      persistState();
+    }
+    function selectCategory(catId) { selectedCategory = catId; renderAll(); }
+    function setVisitorTab(tab) {
+      currentVisitorTab = tab;
+      document.querySelectorAll('.vtab-btn').forEach(b => {
+        b.className = b.dataset.vtab === tab
+          ? 'vtab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-white/10 text-white'
+          : 'vtab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white';
+      });
+      document.querySelectorAll('.visitor-section').forEach(s => s.classList.add('hidden'));
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
+    }
+    function setAdminTab(tab) {
+      currentAdminTab = tab;
+      document.querySelectorAll('.atab-btn').forEach(b => {
+        b.className = b.dataset.atab === tab
+          ? 'atab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30'
+          : 'atab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-white/5';
+      });
+      renderAdminWorkspace();
+    }
+
+    function renderAll() {
+      const box = document.getElementById('logo-emblem-box');
+      if (appState.logoCustomUrl) {
+        box.innerHTML = `<img src="${appState.logoCustomUrl}" alt="Fairplay Padel" class="w-full h-full object-cover" />`;
+      }
+
+      const t = getActiveTournament();
+      if (!t) {
+        document.getElementById('header-tournament-meta').textContent = "Sin torneos cargados • Doble clic en logo para cargar";
+        document.getElementById('tournament-selector').innerHTML = `<option value="">Sin torneos</option>`;
+        document.getElementById('tournament-selector-mobile').innerHTML = `<option value="">Sin torneos</option>`;
+        document.getElementById('category-pills').innerHTML = '';
+        document.getElementById('live-matches-grid').innerHTML = `<div class="col-span-full bg-fairplay-900 border border-white/10 rounded-2xl p-6 text-center text-xs text-slate-400">No hay torneos activos cargados todavía.</div>`;
+        document.getElementById('upcoming-matches-list').innerHTML = `<p class="text-xs text-slate-500">Sin turnos programados.</p>`;
+        document.getElementById('finished-matches-list').innerHTML = `<p class="text-xs text-slate-500">Sin resultados registrados.</p>`;
+        document.getElementById('standings-container').innerHTML = `<p class="text-xs text-slate-500">Sin tablas cargadas.</p>`;
+        document.getElementById('brackets-container').innerHTML = `<p class="text-xs text-slate-500">Sin llaves cargadas.</p>`;
+        document.getElementById('stats-kpi-grid').innerHTML = '';
+        document.getElementById('stats-ranking-container').innerHTML = `<p class="text-xs text-slate-500">Sin estadísticas disponibles.</p>`;
+        renderSponsors();
+        if (document.body.classList.contains('is-admin')) renderAdminWorkspace();
+        return;
+      }
+
+      document.getElementById('header-tournament-meta').textContent = `${t.nombre} • ${t.sede}`;
+
+      const opts = appState.torneos.map(item => `<option value="${item.id}" ${item.id === t.id ? 'selected' : ''}>${item.nombre}</option>`).join('');
+      document.getElementById('tournament-selector').innerHTML = opts;
+      document.getElementById('tournament-selector-mobile').innerHTML = opts;
+
+      const pills = [{ id: 'ALL', label: 'Todas' }, ...t.categorias.map(c => ({ id: c.id, label: c.nombre }))];
+      document.getElementById('category-pills').innerHTML = pills.map(p => `
+        <button onclick="selectCategory('${p.id}')" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${
+          selectedCategory === p.id ? 'bg-limefp text-fairplay-950' : 'bg-fairplay-800 text-slate-300 hover:bg-fairplay-700'
+        }">${p.label}</button>
+      `).join('');
+
+      renderMatches(t);
+      renderStandings(t);
+      renderBrackets(t);
+      renderStats(t);
+      renderSponsors();
+      if (document.body.classList.contains('is-admin')) renderAdminWorkspace();
+    }
+
+    function getTeamName(t, id) { return (t.parejas.find(p => p.id === id) || {}).nombre || 'Por definir'; }
+    function getCatName(t, id) { return (t.categorias.find(c => c.id === id) || {}).nombre || ''; }
+    function formatScore(m) {
+      if (!m.setsA || !m.setsA.length) return '<span class="text-xs text-slate-500">vs</span>';
+      return m.setsA.map((a, i) => `<span class="px-2 py-0.5 rounded bg-fairplay-950 border border-white/10 font-mono text-xs font-bold">${a}-${m.setsB[i] ?? 0}</span>`).join(' ');
+    }
+
+    function renderMatches(t) {
+      const list = selectedCategory === 'ALL' ? t.partidos : t.partidos.filter(m => m.catId === selectedCategory);
+      const live = list.filter(m => m.estado === 'en_juego');
+      const up = list.filter(m => m.estado === 'pendiente');
+      const fin = list.filter(m => m.estado === 'finalizado');
+
+      document.getElementById('live-count-badge').textContent = `${live.length} en cancha`;
+      document.getElementById('live-matches-grid').innerHTML = live.length ? live.map(m => `
+        <div class="bg-gradient-to-br from-fairplay-800 to-fairplay-900 border border-limefp/40 rounded-2xl p-4 shadow-lg">
+          <div class="flex justify-between text-[11px] mb-3">
+            <span class="font-extrabold text-limefp uppercase">${m.cancha}</span>
+            <span class="px-2 py-0.5 rounded-full bg-white/10 text-slate-200 font-semibold">${getCatName(t, m.catId)} • ${m.fase}</span>
+          </div>
+          <div class="space-y-2 text-sm font-bold">
+            <div class="flex justify-between items-center">
+              <span>${getTeamName(t, m.pA)}</span>
+              <div class="flex gap-1">${(m.setsA || []).map(s => `<span class="w-6 h-6 flex items-center justify-center rounded bg-limefp text-fairplay-950 font-extrabold text-xs">${s}</span>`).join('')}</div>
+            </div>
+            <div class="flex justify-between items-center">
+              <span>${getTeamName(t, m.pB)}</span>
+              <div class="flex gap-1">${(m.setsB || []).map(s => `<span class="w-6 h-6 flex items-center justify-center rounded bg-white/15 text-white font-extrabold text-xs">${s}</span>`).join('')}</div>
+            </div>
+          </div>
+        </div>
+      `).join('') : `<div class="col-span-full bg-fairplay-900/60 border border-white/5 rounded-2xl p-5 text-center text-xs text-slate-400">Sin partidos en juego ahora.</div>`;
+
+      const row = (m, done) => `
+        <div class="bg-fairplay-900 border border-white/10 rounded-xl p-3.5 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-[11px] text-slate-400 mb-0.5"><span class="text-limefp font-bold">${m.hora} hs</span> • ${m.cancha} • ${getCatName(t, m.catId)} (${m.fase})</p>
+            <p class="text-sm font-bold text-white truncate">${getTeamName(t, m.pA)} <span class="text-slate-500 font-normal">vs</span> ${getTeamName(t, m.pB)}</p>
+          </div>
+          <div class="shrink-0">${done ? formatScore(m) : '<span class="px-2.5 py-1 rounded-lg bg-white/5 text-[11px] text-slate-300">Pendiente</span>'}</div>
+        </div>`;
+
+      document.getElementById('upcoming-matches-list').innerHTML = up.length ? up.map(m => row(m, false)).join('') : '<p class="text-xs text-slate-500">Sin próximos turnos.</p>';
+      document.getElementById('finished-matches-list').innerHTML = fin.length ? fin.map(m => row(m, true)).join('') : '<p class="text-xs text-slate-500">Sin resultados cargados.</p>';
+    }
+
+    function calculateStandings(t, catId) {
+      const teams = t.parejas.filter(p => p.catId === catId);
+      const matches = t.partidos.filter(m => m.catId === catId && m.estado === 'finalizado');
+      const map = {};
+      teams.forEach(p => map[p.id] = { id: p.id, nombre: p.nombre, zona: p.zona || 'General', pj: 0, pg: 0, sf: 0, sc: 0, gf: 0, gc: 0, pts: 0 });
+
+      matches.forEach(m => {
+        if (!map[m.pA] || !map[m.pB]) return;
+        let sA = 0, sB = 0, gA = 0, gB = 0;
+        (m.setsA || []).forEach((x, i) => {
+          const y = m.setsB[i] || 0;
+          gA += Number(x); gB += Number(y);
+          if (Number(x) > Number(y)) sA++; else if (Number(y) > Number(x)) sB++;
+        });
+        map[m.pA].pj++; map[m.pB].pj++;
+        map[m.pA].sf += sA; map[m.pA].sc += sB; map[m.pB].sf += sB; map[m.pB].sc += sA;
+        map[m.pA].gf += gA; map[m.pA].gc += gB; map[m.pB].gf += gB; map[m.pB].gc += gA;
+        if (sA > sB) { map[m.pA].pg++; map[m.pA].pts += 2; map[m.pB].pts += 1; }
+        else { map[m.pB].pg++; map[m.pB].pts += 2; map[m.pA].pts += 1; }
+      });
+
+      const zones = {};
+      Object.values(map).forEach(r => { (zones[r.zona] = zones[r.zona] || []).push(r); });
+      Object.keys(zones).forEach(z => zones[z].sort((a, b) => (b.pts - a.pts) || ((b.sf - b.sc) - (a.sf - a.sc)) || ((b.gf - b.gc) - (a.gf - a.gc))));
+      return zones;
+    }
+
+    function renderStandings(t) {
+      const cats = selectedCategory === 'ALL' ? t.categorias : t.categorias.filter(c => c.id === selectedCategory);
+      let html = '';
+      cats.forEach(cat => {
+        const zones = calculateStandings(t, cat.id);
+        Object.entries(zones).forEach(([zName, rows]) => {
+          html += `
+            <div class="bg-fairplay-900 border border-white/10 rounded-2xl overflow-hidden">
+              <div class="px-4 py-3 bg-fairplay-800 border-b border-white/10 flex justify-between items-center">
+                <div>
+                  <span class="text-[10px] font-bold text-limefp uppercase">${cat.nombre}</span>
+                  <h4 class="font-extrabold text-sm text-white">${zName}</h4>
+                </div>
+                <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-1 rounded">${FORMATOS_LABEL[cat.formato] || cat.formato}</span>
+              </div>
+              <table class="w-full text-left text-xs">
+                <thead class="text-slate-400 bg-fairplay-950/50 border-b border-white/5">
+                  <tr><th class="py-2 px-3">#</th><th class="py-2 px-3">Pareja</th><th class="py-2 px-2 text-center">PJ</th><th class="py-2 px-2 text-center">PG</th><th class="py-2 px-2 text-center">DG</th><th class="py-2 px-3 text-center text-limefp">PTS</th></tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                  ${rows.map((r, i) => `
+                    <tr class="${i < 2 ? 'bg-limefp/5' : ''}">
+                      <td class="py-2 px-3 font-bold ${i < 2 ? 'text-limefp' : 'text-slate-500'}">${i + 1}</td>
+                      <td class="py-2 px-3 font-bold text-white">${r.nombre}</td>
+                      <td class="py-2 px-2 text-center">${r.pj}</td>
+                      <td class="py-2 px-2 text-center">${r.pg}</td>
+                      <td class="py-2 px-2 text-center text-slate-400">${r.gf - r.gc > 0 ? '+' : ''}${r.gf - r.gc}</td>
+                      <td class="py-2 px-3 text-center font-extrabold text-limefp">${r.pts}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>`;
+        });
+      });
+      document.getElementById('standings-container').innerHTML = html || '<p class="text-xs text-slate-400">Sin tablas disponibles.</p>';
+    }
+
+    function renderBrackets(t) {
+      const pm = t.partidos.filter(m => (selectedCategory === 'ALL' || m.catId === selectedCategory) && /octavos|cuartos|semi|final/i.test(m.fase));
+      document.getElementById('brackets-container').innerHTML = pm.length ? `<div class="grid grid-cols-1 md:grid-cols-3 gap-4">${pm.map(m => `
+        <div class="bg-fairplay-900 border border-white/10 rounded-2xl p-4">
+          <div class="flex justify-between text-[11px] text-limefp font-bold mb-2"><span>${getCatName(t, m.catId)} • ${m.fase}</span><span>${m.hora} hs</span></div>
+          <div class="space-y-1.5 text-xs font-bold">
+            <div class="p-2 rounded bg-fairplay-950 flex justify-between"><span>${getTeamName(t, m.pA)}</span><span class="text-limefp">${(m.setsA || []).join(' ')}</span></div>
+            <div class="p-2 rounded bg-fairplay-950 flex justify-between"><span>${getTeamName(t, m.pB)}</span><span class="text-limefp">${(m.setsB || []).join(' ')}</span></div>
+          </div>
+        </div>`).join('')}</div>`
+      : `<div class="bg-fairplay-900 border border-white/10 rounded-2xl p-8 text-center text-xs text-slate-400">No hay cruces eliminatorios cargados aún.</div>`;
+    }
+
+    function renderStats(t) {
+      const matches = selectedCategory === 'ALL' ? t.partidos : t.partidos.filter(m => m.catId === selectedCategory);
+      const teams = selectedCategory === 'ALL' ? t.parejas : t.parejas.filter(p => p.catId === selectedCategory);
+      const fin = matches.filter(m => m.estado === 'finalizado');
+      let games = 0;
+      fin.forEach(m => (m.setsA || []).forEach((g, i) => games += Number(g) + Number(m.setsB[i] || 0)));
+
+      document.getElementById('stats-kpi-grid').innerHTML = `
+        <div class="bg-fairplay-900 border border-white/10 rounded-2xl p-4"><p class="text-xs text-slate-400">Parejas</p><p class="text-2xl font-extrabold mt-1">${teams.length}</p></div>
+        <div class="bg-fairplay-900 border border-white/10 rounded-2xl p-4"><p class="text-xs text-slate-400">Jugados</p><p class="text-2xl font-extrabold text-limefp mt-1">${fin.length}/${matches.length}</p></div>
+        <div class="bg-fairplay-900 border border-white/10 rounded-2xl p-4"><p class="text-xs text-slate-400">Games</p><p class="text-2xl font-extrabold mt-1">${games}</p></div>
+        <div class="bg-fairplay-900 border border-white/10 rounded-2xl p-4"><p class="text-xs text-slate-400">Categorías</p><p class="text-2xl font-extrabold mt-1">${t.categorias.length}</p></div>
+      `;
+
+      const allRows = [];
+      t.categorias.forEach(c => {
+        if (selectedCategory !== 'ALL' && c.id !== selectedCategory) return;
+        Object.values(calculateStandings(t, c.id)).forEach(arr => arr.forEach(r => allRows.push({ ...r, cat: c.nombre })));
+      });
+      allRows.sort((a, b) => b.gf - a.gf);
+
+      document.getElementById('stats-ranking-container').innerHTML = `
+        <h3 class="text-sm font-bold uppercase tracking-wider mb-3">Mayor Ofensiva (Games a Favor)</h3>
+        <div class="space-y-2">${allRows.slice(0, 5).map((r, i) => `
+          <div class="flex justify-between items-center bg-fairplay-950 px-3.5 py-2 rounded-xl border border-white/5 text-xs">
+            <span><strong class="text-limefp mr-2">#${i + 1}</strong> <strong>${r.nombre}</strong> <span class="text-slate-400">(${r.cat})</span></span>
+            <span class="font-extrabold text-limefp">${r.gf} games</span>
+          </div>`).join('') || '<p class="text-xs text-slate-500">Sin datos.</p>'}</div>
+      `;
+    }
+
+    function renderSponsors() {
+      const active = [appState.sponsors.banner1, appState.sponsors.banner2].filter(b => b && b.activo);
+      const footer = document.getElementById('sponsors-footer');
+      if (!active.length) { footer.classList.add('hidden'); return; }
+      footer.classList.remove('hidden');
+      document.getElementById('sponsors-grid').innerHTML = active.map((b, i) => `
+        <a href="${b.link || '#'}" target="_blank" rel="noopener" class="block bg-fairplay-950 border border-white/10 hover:border-limefp/50 rounded-2xl overflow-hidden transition">
+          ${b.imagen
+            ? `<img src="${b.imagen}" alt="${b.titulo}" class="w-full h-24 md:h-28 object-cover" />`
+            : `<div class="h-24 md:h-28 px-5 flex items-center justify-between bg-gradient-to-r from-fairplay-800 to-fairplay-950">
+                <div><span class="text-[10px] font-bold uppercase text-limefp">Sponsor ${i + 1}</span><p class="text-sm font-extrabold text-white">${b.titulo}</p></div>
+                <span class="text-xs font-bold text-slate-300">Visitar →</span>
+              </div>`}
+        </a>
+      `).join('');
+    }
+
+    function focusPairForm(catId) {
+      const sel = document.getElementById('p-cat');
+      const inp = document.getElementById('p-name');
+      if (sel && catId) sel.value = catId;
+      if (inp) inp.focus();
+    }
+
+    function renderAdminWorkspace() {
+      const t = getActiveTournament();
+      const ws = document.getElementById('admin-workspace');
+
+      if (!t && currentAdminTab !== 'torneos' && currentAdminTab !== 'sponsors') {
+        currentAdminTab = 'torneos';
+      }
+
+      if (currentAdminTab === 'torneos') {
+        ws.innerHTML = `
+          <h3 class="text-base font-extrabold text-amber-300 mb-4">1. Crear o Seleccionar Torneo y Sede</h3>
+          <form onsubmit="createTournament(event)" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5 bg-fairplay-950 p-4 rounded-xl border border-white/10">
+            <input id="new-t-name" required placeholder="Nombre del Torneo" class="bg-fairplay-900 border border-white/15 rounded-xl px-3 py-2 text-xs" />
+            <input id="new-t-sede" required placeholder="Sede / Complejo (ej. Sáenz Peña)" class="bg-fairplay-900 border border-white/15 rounded-xl px-3 py-2 text-xs" />
+            <input id="new-t-canchas" value="4" type="number" min="1" max="20" placeholder="Cant. Canchas" class="bg-fairplay-900 border border-white/15 rounded-xl px-3 py-2 text-xs" />
+            <button class="bg-limefp text-fairplay-950 font-bold rounded-xl py-2 text-xs">+ Crear Torneo</button>
+          </form>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            ${appState.torneos.map(item => `
+              <div class="bg-fairplay-950 border ${t && item.id === t.id ? 'border-limefp' : 'border-white/10'} rounded-xl p-4 flex justify-between items-center">
+                <div>
+                  <p class="font-bold text-sm text-white">${item.nombre}</p>
+                  <p class="text-xs text-slate-400">${item.sede} • ${item.canchas.length} canchas</p>
+                </div>
+                <button onclick="switchTournament('${item.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold ${t && item.id === t.id ? 'bg-limefp text-fairplay-950' : 'bg-white/10 text-white'}">${t && item.id === t.id ? 'Activo' : 'Activar'}</button>
+              </div>
+            `).join('') || '<p class="text-xs text-slate-400">Creá el primer torneo usando el formulario de arriba.</p>'}
+          </div>`;
+        return;
+      }
+
+      if (currentAdminTab === 'categorias') {
+        ws.innerHTML = `
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-base font-extrabold text-amber-300 mb-3">2. Categorías y Formatos — ${t.nombre}</h3>
+              <form onsubmit="addCat(event)" class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-fairplay-950 p-4 rounded-xl border border-white/10">
+                <input id="new-c-name" required placeholder="Categoría (ej. 6ta Caballeros)" class="bg-fairplay-900 border border-white/15 rounded-xl px-3 py-2 text-xs" />
+                <select id="new-c-fmt" class="bg-fairplay-900 border border-white/15 rounded-xl px-3 py-2 text-xs">
+                  ${Object.entries(FORMATOS_LABEL).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
+                </select>
+                <button class="bg-limefp text-fairplay-950 font-bold rounded-xl py-2 text-xs">+ Agregar Categoría</button>
+              </form>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              ${t.categorias.map(c => {
+                const countPairs = t.parejas.filter(p => p.catId === c.id).length;
+                return `
+                  <div class="bg-fairplay-950 border border-white/10 rounded-xl p-3.5 flex flex-col justify-between gap-3">
+                    <div>
+                      <div class="flex items-center justify-between gap-2">
+                        <p class="font-bold text-sm text-white">${c.nombre}</p>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-white/10 text-slate-200">${countPairs} parejas</span>
+                      </div>
+                      <p class="text-xs text-slate-400 mt-0.5">${FORMATOS_LABEL[c.formato]}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button onclick="focusPairForm('${c.id}')" class="flex-1 px-2.5 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg text-[11px] font-bold">+ Cargar Pareja</button>
+                      <button onclick="genMatches('${c.id}')" class="px-2.5 py-1.5 bg-limefp/15 hover:bg-limefp/25 text-limefp rounded-lg text-[11px] font-bold">Sortear</button>
+                    </div>
+                  </div>`;
+              }).join('') || '<p class="col-span-full text-xs text-slate-400">Primero agregá una categoría arriba.</p>'}
+            </div>
+
+            <div class="pt-2 border-t border-white/10">
+              <h4 class="text-sm font-extrabold text-limefp mb-3">3. Cargar Parejas y Celular WhatsApp</h4>
+              ${t.categorias.length ? `
+                <form onsubmit="addPair(event)" class="grid grid-cols-1 md:grid-cols-5 gap-2.5 mb-4 bg-fairplay-950 p-4 rounded-xl border border-white/10">
+                  <select id="p-cat" class="bg-fairplay-900 border border-white/15 rounded-xl px-3 py-2 text-xs">
+                    ${t.categorias.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
+                  </select>
+                  <input id="p-name" required placeholder="Jugador 1 / Jugador 2" class="bg-fairplay-900 border border-white/15 rounded-xl px-3 py-2 text-xs" />
+                  <input id="p-zona" value="Zona A" placeholder="Zona (ej. Zona A)" class="bg-fairplay-900 border border-white/15 rounded-xl px-3 py-2 text-xs" />
+                  <input id="p-tel" type="tel" placeholder="Celular (ej. 3644123456)" class="bg-fairplay-900 border border-white/15 rounded-xl px-3 py-2 text-xs" />
+                  <button class="bg-limefp text-fairplay-950 font-bold rounded-xl py-2 text-xs">+ Guardar Pareja</button>
+                </form>
+              ` : '<p class="text-xs text-amber-300 mb-3">Creá una categoría arriba para habilitar el alta de parejas.</p>'}
+
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-64 overflow-y-auto">
+                ${t.parejas.map(p => `
+                  <div class="bg-fairplay-950 border border-white/10 rounded-xl p-3 text-xs flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="font-bold text-white truncate">${p.nombre}</p>
+                      <p class="text-[11px] text-slate-400 truncate">${getCatName(t, p.catId)} • ${p.zona}</p>
+                      <div class="flex items-center gap-1.5 mt-1.5">
+                        <input type="tel" value="${p.tel || ''}" placeholder="Sin celular" onchange="updatePairPhone('${p.id}', this.value)" class="w-32 bg-fairplay-900 border border-white/15 rounded px-2 py-0.5 text-[11px] text-limefp outline-none" />
+                        <span class="text-[10px] text-slate-500">WA</span>
+                      </div>
+                    </div>
+                    <button onclick="deletePair('${p.id}')" class="text-rose-400 hover:text-rose-300 font-bold px-1.5 shrink-0">✕</button>
+                  </div>
+                `).join('') || '<p class="col-span-full text-xs text-slate-400">Sin parejas cargadas todavía.</p>'}
+              </div>
+            </div>
+          </div>`;
+        return;
+      }
+
+      if (currentAdminTab === 'sponsors') {
+        ws.innerHTML = `
+          <h3 class="text-base font-extrabold text-amber-300 mb-4">2 Publicidades Inferiores</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${[1, 2].map(n => {
+              const b = appState.sponsors[`banner${n}`];
+              return `<div class="bg-fairplay-950 border border-white/10 rounded-xl p-4 space-y-2.5">
+                <div class="flex justify-between"><span class="font-bold text-xs">Banner #${n}</span><label class="text-xs"><input type="checkbox" id="b_act_${n}" ${b.activo ? 'checked' : ''} /> Activo</label></div>
+                <input id="b_tit_${n}" value="${b.titulo}" placeholder="Título del sponsor" class="w-full bg-fairplay-900 border border-white/15 rounded-lg px-3 py-1.5 text-xs" />
+                <input id="b_lnk_${n}" value="${b.link}" placeholder="Link destino (https://...)" class="w-full bg-fairplay-900 border border-white/15 rounded-lg px-3 py-1.5 text-xs" />
+                <input type="file" accept="image/*" onchange="uploadImg(event, 'banner${n}')" class="text-xs text-slate-400" />
+                <button onclick="saveBanner(${n})" class="w-full py-2 bg-limefp text-fairplay-950 font-bold rounded-lg text-xs">Guardar Banner #${n}</button>
+              </div>`;
+            }).join('')}
+          </div>`;
+        return;
+      }
+
+      if (currentAdminTab === 'resultados') {
+        ws.innerHTML = `
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-base font-extrabold text-amber-300">Partidos y Resultados — ${t.nombre}</h3>
+            <button onclick="addMatch()" class="px-3 py-1.5 bg-limefp text-fairplay-950 font-bold rounded-xl text-xs">+ Nuevo Partido</button>
+          </div>
+          <div class="space-y-2.5 max-h-96 overflow-y-auto">
+            ${t.partidos.map(m => {
+              const pA = t.parejas.find(x => x.id === m.pA);
+              const pB = t.parejas.find(x => x.id === m.pB);
+              return `
+              <div class="bg-fairplay-950 border border-white/10 rounded-xl p-3 flex flex-col gap-2.5">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div>
+                    <span class="text-[10px] font-bold text-limefp uppercase">${getCatName(t, m.catId)} • ${m.fase} • ${m.cancha} (${m.hora})</span>
+                    <p class="text-xs font-bold text-white">${getTeamName(t, m.pA)} vs ${getTeamName(t, m.pB)}</p>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <select onchange="setMatchState('${m.id}', this.value)" class="bg-fairplay-900 border border-white/15 rounded-lg px-2 py-1 text-xs">
+                      <option value="pendiente" ${m.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                      <option value="en_juego" ${m.estado === 'en_juego' ? 'selected' : ''}>En Juego</option>
+                      <option value="finalizado" ${m.estado === 'finalizado' ? 'selected' : ''}>Finalizado</option>
+                    </select>
+                    <input id="sA_${m.id}" value="${(m.setsA || []).join(',')}" placeholder="6,6" class="w-20 bg-fairplay-900 border border-white/15 rounded-lg px-2 py-1 text-xs text-center font-mono" />
+                    <input id="sB_${m.id}" value="${(m.setsB || []).join(',')}" placeholder="4,3" class="w-20 bg-fairplay-900 border border-white/15 rounded-lg px-2 py-1 text-xs text-center font-mono" />
+                    <button onclick="saveScore('${m.id}')" class="px-3 py-1 bg-amber-400 text-fairplay-950 font-bold rounded-lg text-xs">Guardar</button>
+                    <button onclick="delMatch('${m.id}')" class="px-2 py-1 bg-rose-500/20 text-rose-400 rounded-lg text-xs">✕</button>
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-white/5 text-[11px]">
+                  <span class="text-slate-400">Avisar horario WhatsApp:</span>
+                  ${pA ? `<button onclick="sendMatchWhatsApp('${m.id}', '${pA.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-bold transition">📲 ${pA.nombre}${pA.tel ? ' (' + pA.tel + ')' : ''}</button>` : ''}
+                  ${pB ? `<button onclick="sendMatchWhatsApp('${m.id}', '${pB.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-bold transition">📲 ${pB.nombre}${pB.tel ? ' (' + pB.tel + ')' : ''}</button>` : ''}
+                </div>
+              </div>`;
+            }).join('') || '<p class="text-xs text-slate-400">No hay partidos cargados. Usá "+ Nuevo Partido" o "Sortear" en una categoría.</p>'}
+          </div>`;
+      }
+    }
+
+    function createTournament(e) {
+      e.preventDefault();
+      const count = Math.max(1, Number(document.getElementById('new-t-canchas').value) || 4);
+      const canchas = Array.from({ length: count }, (_, i) => `Cancha ${i + 1}`);
+      const nt = {
+        id: 't_' + Date.now(),
+        nombre: document.getElementById('new-t-name').value.trim(),
+        sede: document.getElementById('new-t-sede').value.trim(),
+        canchas,
+        categorias: [],
+        parejas: [],
+        partidos: []
+      };
+      appState.torneos.push(nt);
+      appState.activeTournamentId = nt.id;
+      currentAdminTab = 'categorias';
+      persistState();
+    }
+    function addCat(e) {
+      e.preventDefault();
+      const newCat = {
+        id: 'c_' + Date.now(),
+        nombre: document.getElementById('new-c-name').value.trim(),
+        formato: document.getElementById('new-c-fmt').value
+      };
+      getActiveTournament().categorias.push(newCat);
+      persistState();
+      focusPairForm(newCat.id);
+    }
+    function addPair(e) {
+      e.preventDefault();
+      getActiveTournament().parejas.push({
+        id: 'p_' + Date.now(),
+        catId: document.getElementById('p-cat').value,
+        nombre: document.getElementById('p-name').value.trim(),
+        zona: document.getElementById('p-zona').value.trim() || 'Zona A',
+        tel: document.getElementById('p-tel').value.trim()
+      });
+      persistState();
+    }
+    function updatePairPhone(id, tel) {
+      const t = getActiveTournament();
+      const p = t.parejas.find(x => x.id === id);
+      if (p) { p.tel = tel.trim(); persistState(); }
+    }
+    function deletePair(id) {
+      const t = getActiveTournament();
+      t.parejas = t.parejas.filter(p => p.id !== id);
+      persistState();
+    }
+    function addMatch() {
+      const t = getActiveTournament();
+      const catId = selectedCategory !== 'ALL' ? selectedCategory : (t.categorias[0]?.id || '');
+      const pairs = t.parejas.filter(p => p.catId === catId);
+      if (pairs.length < 2) return alert("Cargá al menos 2 parejas en esta categoría.");
+      t.partidos.push({
+        id: 'm_' + Date.now(), catId, fase: 'Zona A', cancha: t.canchas[0] || 'Cancha 1',
+        hora: '20:00', pA: pairs[0].id, pB: pairs[1].id, setsA: [], setsB: [], estado: 'pendiente'
+      });
+      persistState();
+    }
+    function genMatches(catId) {
+      const t = getActiveTournament();
+      const pairs = t.parejas.filter(p => p.catId === catId);
+      if (pairs.length < 2) return alert("Necesitás al menos 2 parejas en la categoría.");
+      const zones = {};
+      pairs.forEach(p => { (zones[p.zona || 'Zona A'] = zones[p.zona || 'Zona A'] || []).push(p); });
+      Object.entries(zones).forEach(([z, arr]) => {
+        for (let i = 0; i < arr.length; i++) {
+          for (let j = i + 1; j < arr.length; j++) {
+            t.partidos.push({
+              id: 'm_' + Date.now() + '_' + i + j, catId, fase: z,
+              cancha: t.canchas[(i + j) % t.canchas.length] || 'Cancha 1',
+              hora: '20:00', pA: arr[i].id, pB: arr[j].id, setsA: [], setsB: [], estado: 'pendiente'
+            });
+          }
+        }
+      });
+      currentAdminTab = 'resultados';
+      persistState();
+    }
+    function setMatchState(id, st) {
+      const m = getActiveTournament().partidos.find(x => x.id === id);
+      if (m) { m.estado = st; persistState(); }
+    }
+    function saveScore(id) {
+      const m = getActiveTournament().partidos.find(x => x.id === id);
+      if (!m) return;
+      const a = document.getElementById(`sA_${id}`).value.trim();
+      const b = document.getElementById(`sB_${id}`).value.trim();
+      m.setsA = a ? a.split(',').map(n => Number(n.trim())) : [];
+      m.setsB = b ? b.split(',').map(n => Number(n.trim())) : [];
+      persistState();
+    }
+    function delMatch(id) {
+      const t = getActiveTournament();
+      t.partidos = t.partidos.filter(m => m.id !== id);
+      persistState();
+    }
+    function uploadImg(ev, key) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const scale = Math.min(1, 800 / img.width);
+          canvas.width = img.width * scale; canvas.height = img.height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          appState.sponsors[key].imagen = canvas.toDataURL('image/jpeg', 0.72);
+          persistState();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    function saveBanner(n) {
+      const b = appState.sponsors[`banner${n}`];
+      b.activo = document.getElementById(`b_act_${n}`).checked;
+      b.titulo = document.getElementById(`b_tit_${n}`).value.trim();
+      b.link = document.getElementById(`b_lnk_${n}`).value.trim();
+      persistState();
+    }
+    function exportJSON() {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' }));
+      a.download = `fairplay_padel_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    }
+
+    initApp();
+  </script>
+</body>
+</html>
